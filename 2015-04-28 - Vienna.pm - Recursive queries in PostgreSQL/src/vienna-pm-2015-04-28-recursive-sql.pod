@@ -1,0 +1,149 @@
+
+=pod
+
+=head1 Recursive queries in PostgreSQL
+
+=head3 Date
+
+2015-04-28
+
+=head3 Author
+
+Branislav Zahradnik
+
+=head1 Non-deterministic functions, trees, graphs
+
+Recursive queries implements loops in SQL
+
+=over
+
+=item *
+
+non-deterministic functions - fibonacci, sequences, iterations, ...
+
+=item *
+
+trees (forums)
+
+=item *
+
+graphs
+
+=back
+
+=head1 Implementation
+
+Basic skeleton is simple:
+
+  WITH RECURSIVE t AS (
+    anchor-query
+    UNION ALL
+    recursive-query
+  )
+
+=head1 Anchor query
+
+Select known fact(s) as recursion start row set.
+
+  VALUES (1, 0, 1)
+
+  SELECT * FROM forum WHERE parent IS NULL
+
+=head1 Recursive query
+
+Self-referencing query providing next iteration step.
+
+Should return empty row set once (termination clause).
+
+LEFT JOIN self-referenced query is not allowed
+
+Self-referenced query contains only rows from previous iteration.
+
+=head1 Example - Fibonacci
+
+Live demo: 01-fibonacci.sql
+
+Use recursive query to implement recursive algorithm.
+
+Following query will I<fail>
+
+  WITH RECURSIVE fib (n, prev, val) AS (
+    VALUES (1, 0, 1)
+    UNION ALL
+    SELECT n + 1, val, prev + val FROM fib
+  )
+  select * from fib;
+
+=head1 Example - Iteration
+
+Live demo: 02-iteration.sql
+
+=head1 Example - Forum threads
+
+Live demo: 03-threads.sql
+
+Use recursive query to fetch whole tree in one statement.
+
+=over
+
+=item *
+
+termination  in this case is
+
+  f.parent = t.id
+
+=item *
+
+relies on data structure and constraints
+
+=back
+
+=head1 Example - Graph - shortest path
+
+Live demo: 04-graph.sql
+
+=head1 Performance issues
+
+=over
+
+=item *
+
+Avoid C<UNION> (if database supports it, eg Oracle supports only C<UNION ALL>)
+
+=item *
+
+Use C<limit clause> statement instead of C<where clause> whenever possible
+
+=item *
+
+Any (especially well written) SQL statement is faster than client code.
+
+=back
+
+=head1 Where it works?
+
+=over
+
+=item PostgreSQL
+
+=item SQLite
+
+nice examples on site: Mandelbrot, Sudoku solver
+
+=item Firebird
+
+=item DB2
+
+=item Oracle (prior 11g r2 only limited via C<CONNECT BY>)
+
+=item Microsoft SQL
+
+=back
+
+=head1 Almost done
+
+Any questions?
+
+=head1 Bonus - window expression
+
+Live demo: bonus-window.sql

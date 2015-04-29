@@ -1,0 +1,183 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<title>Src/vienna pm 2015 04 28 recursive sql</title>
+<meta http-equiv="content-type" content="text/html; charset=iso-8859-1" />
+<meta name="generator" content="pod2s5 0.09" />
+<meta name="generator" content="S5" />
+<meta name="version" content="S5 1.1" />
+<meta name="presdate" content="Tue Apr 28 07:15:09 2015" />
+<meta name="author" content="brano" />
+<meta name="company" content="&nbsp;" />
+<!-- configuration parameters -->
+<meta name="defaultView" content="slideshow" />
+<meta name="controlVis" content="hidden" />
+<!-- style sheet links -->
+<link rel="stylesheet" href="../../s5/ui/hpb/slides.css" type="text/css" media="projection" id="slideProj" />
+<link rel="stylesheet" href="../../s5/ui/hpb/outline.css" type="text/css" media="screen" id="outlineStyle" />
+<link rel="stylesheet" href="../../s5/ui/hpb/print.css" type="text/css" media="print" id="slidePrint" />
+<link rel="stylesheet" href="../../s5/ui/hpb/opera.css" type="text/css" media="projection" id="operaFix" />
+
+<!-- embedded styles -->
+<style type="text/css" media="all">
+.imgcon {width: 525px; margin: 0 auto; padding: 0; text-align: center;}
+#anim {width: 270px; height: 320px; position: relative; margin-top: 0.5em;}
+#anim img {position: absolute; top: 42px; left: 24px;}
+img#me01 {top: 0; left: 0;}
+img#me02 {left: 23px;}
+img#me04 {top: 44px;}
+img#me05 {top: 43px;left: 36px;}
+</style>
+<!-- S5 JS -->
+<script src="../../s5/ui/hpb/slides.js" type="text/javascript"></script>
+<!--
+   tom AT cpan.org:
+   this will not work, it's not contained
+   in the downloadable S5
+   <script src="/mint/?js" type="text/javascript"></script></head>
+-->
+<body>
+
+<div class="layout">
+
+<div id="controls"></div>
+<div id="currentSlide"></div>
+<div id="header"></div>
+<div id="footer">
+<h1>barney-ntb &#8226; Tue Apr 28 07:15:09 2015</h1>
+<h2>Src/vienna pm 2015 04 28 recursive sql</h2></div>
+</div><div class="slide">
+<h1>Recursive queries in PostgreSQL
+
+</h1><h3>Date
+
+</h3><p>2015-04-28
+
+</p><h3>Author
+
+</h3><p>Branislav Zahradnik
+
+</p></div>
+<div class="slide">
+<h1>Non-deterministic functions, trees, graphs
+
+</h1><p>Recursive queries implements loops in SQL
+
+</p><ul class="incremental"><li level="1"><p>non-deterministic functions - fibonacci, sequences, iterations, ...
+
+</p></li><li level="1"><p>trees (forums)
+
+</p></li><li level="1"><p>graphs
+
+</p></li></ul class="incremental"></div>
+<div class="slide">
+<h1>Implementation
+
+</h1><p>Basic skeleton is simple:
+
+</p><pre>  WITH RECURSIVE t AS (
+    anchor-query
+    UNION ALL
+    recursive-query
+  ) </pre></div>
+<div class="slide">
+<h1>Anchor query
+
+</h1><p>Select known fact(s) as recursion start row set.
+
+</p><pre>  VALUES (1, 0, 1)
+
+  SELECT * FROM forum WHERE parent IS NULL </pre></div>
+<div class="slide">
+<h1>Recursive query
+
+</h1><p>Self-referencing query providing next iteration step.
+
+</p><p>Should return empty row set once (termination clause).
+
+</p><p>LEFT JOIN self-referenced query is not allowed
+
+</p><p>Self-referenced query contains only rows from previous iteration.
+
+</p></div>
+<div class="slide">
+<h1>Example - Fibonacci
+
+</h1><p>Live demo: 01-fibonacci.sql
+
+</p><p>Use recursive query to implement recursive algorithm.
+
+</p><p>Following query will <i>fail</i>
+
+</p><pre>  WITH RECURSIVE fib (n, prev, val) AS (
+    VALUES (1, 0, 1)
+    UNION ALL
+    SELECT n + 1, val, prev + val FROM fib
+  )
+  select * from fib; </pre></div>
+<div class="slide">
+<h1>Example - Iteration
+
+</h1><p>Live demo: 02-iteration.sql
+
+</p></div>
+<div class="slide">
+<h1>Example - Forum threads
+
+</h1><p>Live demo: 03-threads.sql
+
+</p><p>Use recursive query to fetch whole tree in one statement.
+
+</p><ul class="incremental"><li level="1"><p>termination  in this case is
+
+</p><pre>  f.parent = t.id </pre></li><li level="1"><p>relies on data structure and constraints
+
+</p></li></ul class="incremental"></div>
+<div class="slide">
+<h1>Example - Graph - shortest path
+
+</h1><p>Live demo: 04-graph.sql
+
+</p></div>
+<div class="slide">
+<h1>Performance issues
+
+</h1><ul class="incremental"><li level="1"><p>Avoid <code>UNION</code> (if database supports it, eg Oracle supports only <code>UNION ALL</code>)
+
+</p></li><li level="1"><p>Use <code>limit clause</code> statement instead of <code>where clause</code> whenever possible
+
+</p></li><li level="1"><p>Any (especially well written) SQL statement is faster than client code.
+
+</p></li></ul class="incremental"></div>
+<div class="slide">
+<h1>Where it works?
+
+</h1><ul><li level="1">PostgreSQL
+
+</li><li level="1">SQLite
+
+<p>nice examples on site: Mandelbrot, Sudoku solver
+
+</p></li><li level="1">Firebird
+
+</li><li level="1">DB2
+
+</li><li level="1">Oracle (prior 11g r2 only limited via <code>CONNECT BY</code>)
+
+</li><li level="1">Microsoft SQL
+
+</li></ul></div>
+<div class="slide">
+<h1>Almost done
+
+</h1><p>Any questions?
+
+</p></div>
+<div class="slide">
+<h1>Bonus - window expression
+
+</h1><p>Live demo: bonus-window.sql
+</p></div></body></html>
