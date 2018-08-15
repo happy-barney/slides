@@ -1,0 +1,83 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html lang="en-US" xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>Context::Singleton</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <link rel="stylesheet" type="text/css" media="screen, projection, print"
+          href="https://www.w3.org/Talks/Tools/Slidy2/styles/slidy.css" />
+    <script src="https://www.w3.org/Talks/Tools/Slidy2/scripts/slidy.js"
+            charset="utf-8" type="text/javascript"></script>
+    <link rel="stylesheet" type="text/css" media="screen, projection, print"
+          href="https://www.w3.org/Talks/Tools/Slidy2/styles/w3c-blue.css" />
+    <style type="text/css">
+      <!-- your custom style rules -->
+    </style>
+  </head>
+
+  <body class="single_slide">
+    <div class="backround" style="background-color: #728ec2; height: 3.5em">
+      <a href="https://gooddata.com">
+        <img style="position:absolute; right:0.2em; top:0.2em; padding:0 0 0 0;" src="gd-logo.png" alt="GoodData" width="110"/>
+      </a>
+    </div>
+
+    <div class="slide">
+      <h1>Named or positional arguments ?</h1>
+
+      <p class="incremental">
+        both with Sub::Params
+        <ul class="incremental">
+          <li><a href="...">https://github.com/gooddata/perl-sub-params</a></li>
+          <li>just published on CPAN</li>
+          <li>issue learned: don't use unquoted V-string for $VERSION (thanks Andreas König)</li>
+        </ul>
+      </p>
+
+      <pre class="incremental">
+    use Sub::Params;
+
+    sub foo {
+        my %args = Sub::Params::named_or_positional_arguments (
+            args =&gt \@_,
+            names =&gt; [qw[ first second ]],
+        );
+
+        return $args{first} + $args{second};
+    }
+
+    say foo (1, 2);
+    # 3
+    say foo (first =&gt; 1, second =&gt; 2);
+    # 3</pre>
+    </div>
+
+    <div class="slide">
+      <h1>Shared examples</h1>
+
+      <pre>
+    use Shared::Examples::Net::Amazon::S3::Client (
+        qw[ expect_client_object_delete ],
+    );
+
+    use Shared::Examples::Net::Amazon::S3::Error (
+        qw[ fixture_error_access_denied ],
+    );
+
+    expect_client_object_delete 'delete object' =&gt (
+        with_bucket             =&gt 'some-bucket',
+        with_key                =&gt 'some-key',
+        expect_request          =&gt { DELETE =&gt 'https://some-bucket.s3.amazonaws.com/some-key' },
+        expect_data             =&gt bool (1),
+    );
+
+    expect_client_object_delete 'error access denied' =&gt (
+        with_bucket             =&gt 'some-bucket',
+        with_key                =&gt 'some-key',
+        fixture_error_access_denied,
+        expect_request          =&gt { DELETE =&gt 'https://some-bucket.s3.amazonaws.com/some-key' },
+        throws                  =&gt qr/^AccessDenied: Access denied error message/,
+    );</pre>
+    </div>
+
+  </body>
+</html>

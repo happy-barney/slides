@@ -1,0 +1,243 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html lang="en-US" xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>Context::Singleton</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <link rel="stylesheet" type="text/css" media="screen, projection, print"
+          href="https://www.w3.org/Talks/Tools/Slidy2/styles/slidy.css" />
+    <script src="https://www.w3.org/Talks/Tools/Slidy2/scripts/slidy.js"
+            charset="utf-8" type="text/javascript"></script>
+    <link rel="stylesheet" type="text/css" media="screen, projection, print"
+          href="https://www.w3.org/Talks/Tools/Slidy2/styles/w3c-blue.css" />
+    <style type="text/css">
+      <!-- your custom style rules -->
+    </style>
+  </head>
+
+  <body class="single_slide">
+    <div class="backround" style="background-color: #728ec2; height: 3.5em">
+      <a href="https://gooddata.com">
+        <img style="position:absolute; right:0.2em; top:0.2em; padding:0 0 0 0;" src="gd-logo.png" alt="GoodData" width="110"/>
+      </a>
+    </div>
+
+    <div class="slide">
+      <h2 style="padding-top:2em">Domain-Driven Development with Context::Singleton</h2>
+      <ul>
+        <li>name: Branislav Zahradník</li>
+        <li>pause id: BARNEY</li>
+        <li>github: happy-barney</li>
+        <li>email: happy.barney@gmail.com</li>
+        <li>pm group: Brno.pm</li>
+        <li>working at GoodData</li>
+      </ul>
+    </div>
+
+    <div class="slide">
+      <h1>Why domain-driven development ?</h1>
+
+      <ul>
+        <li>focus on business side of software development</li>
+        <li>emphasize business / development cooperation</li>
+        <li>emphasize domain expert's contribution</li>
+        <li>emphasize minimalistic design (bounded context)</li>
+      </ul>
+    </div>
+
+    <div class="slide">
+      <h1>How to measure software quality</h1>
+
+      <ul>
+        <li>number of bugs ?</li>
+        <li>maintainance effort ?</li>
+        <li>evolution effor ?</li>
+      </ul>
+    </div>
+
+    <div class="slide">
+      <h1>Explain DDD - Bounded context</h1>
+
+      <ul>
+        <li>semantically related component</li>
+        <li>example (taken from Domain-Driven Design Destilled)
+          <ul>
+            <li>product</li>
+            <li>backlog item</li>
+            <li>sprint</li>
+            <li>release</li>
+          </ul>
+        </li>
+        <li>bounded context looks like µservice</li>
+        <li>reuseable (context mapping)</li>
+      </ul>
+    </div>
+
+    <div class="slide">
+      <h1>Explain DDD - domain language</h1>
+
+      <ul>
+        <li>describes applicable scenarios using domain terms</li>
+        <li>common for both domain experts (business) and developers</li>
+        <li>same term can have different meaning in different BC</li>
+      </ul>
+    </div>
+
+    <div class="slide">
+      <h1>Explain DDD - domain event</h1>
+
+      <ul>
+        <li>record of something business important</li>
+        <li>product of domain command</li>
+        <li>eventual consistency</li>
+        <li>can be observed</li>
+      </ul>
+    </div>
+
+    <div class="slide">
+      <h1>Explain DDD - tests</h1>
+
+      <ul>
+        <li>test case are described using domain language</li>
+        <li>assert domain events</li>
+        <li>domain expert can write or verify test case</li>
+        <li>tests are entry point into system</li>
+      </ul>
+    </div>
+
+    <div class="slide">
+      <h1>DDD with Context::Singleton</h1>
+
+      <ul>
+        <li>frame - flat model</li>
+        <li>proclaim / deduce - value objects</li>
+        <li>deduce - domain command / domain event</li>
+        <li>trigger - observing domain events</li>
+      </ul>
+    </div>
+
+    <div class="slide">
+      <h1>Example - event listener</h1>
+
+      <pre>
+        trigger 'project::id' =&gt; sub {
+            logger-&gt;mdc-&gt;set (PROJECT_ID =&gt $_[0])
+        }</pre>
+    </div>
+
+    <div class="slide">
+      <h1>Example - project backup using remote storage</h1>
+
+      <pre>
+        contrive 'backup::project' =&gt; (
+            dep => [ qw[ project::id backup::driver ] ],
+        );
+
+        contrive 'backup::driver' =&gt (
+            class =&gt; 'Backup::Storage',
+            dep =&gt; [ 'backup::storage::username', 'backup::storage::password' ],
+        );
+
+        proclaim 'Backup::Storage' =&gt; 'Backup::Storage::S3::AWS';</pre>
+    </div>
+
+    <div class="slide">
+      <h1>Example -  ... timtowdi</h1>
+
+      <pre>
+        contrive 'net-amazon-s3-access-key' =&gt; (
+            dep =&gt; [ 'backup::storage::username' ],
+        );
+        contrive 'net-amazon-s3-sercet-key' =&gt; (
+            dep =&gt; [ 'backup::storage::password' ],
+        );
+        contrive 'net-amazon-s3' =&gt (
+            class =&gt; 'Net::Amazon::S3',
+            dep =&gt; {
+                aws_access_key =&gt; 'net-amazon-s3-access-key',
+                aws_secret_key =&gt; 'net-amazon-s3-sercet-key',
+            },
+        )</pre>
+    </div>
+
+    <div class="slide">
+      <h1>Example - tests</h1>
+
+      <ul>
+        <li>proclaim - inject state (mocks)</li>
+        <li>deduce 'domain::command'</li>
+        <li>assert 'domain-event' ...</li>
+      </ul>
+
+      <pre>
+        proclaim 'net-amazon-s3-access-key'    =&gt; 'Dummy';
+        proclaim 'net-amazon-s3-secret-key'    =&gt; 'Dummy';
+        proclaim 'net-amazon-s3-bucket'        =&gt; 'dummy-bucket';
+        proclaim 'net-amazon-s3-bucket-region' =&gt; 'ca-central-1';
+        proclaim 'net-amazon-s3-object'        =&gt; 'some/object';
+        proclaim 'net-amazon-s3-expire-in'     =&gt; 7_200;
+        proclaim 'now'                         =&gt; '2010-01-01 12:36:54';
+
+        ok deduce ('net-amazon-s3-object-signed-uri'), ...;</pre>
+
+    </div>
+
+    <div class="slide">
+      <h1>Example - API versioninig</h1>
+
+      <pre>
+        contrive "parser/v1.0" =&gt; ( dep =&gt; [ "vnd.v1.0+json" ],  ... )
+        contrive "parser/v2.0" =&gt; ( dep =&gt; [ "vnd.v2.0+json" ],  ... )
+
+        contrive "user::login" =&gt (
+            dep =&gt; [ "parser/v1.0" ],
+            as =&gt; sub { $_[0]-&gt{login} },
+        );
+
+        contrive "user::login" =&gt (
+            dep =&gt; [ "parser/v2.0" ],
+            as =&gt; sub { $_[0]-&gt{user}{login_name} },
+        );
+
+        proclaim $request-&gt{content_type} =&gt; 1;
+        deduce "authorize::user";</pre>
+    </div>
+
+    <div class="slide">
+      <h1>Example - API versioning</h1>
+
+      <pre>
+        contrive "builder/v1.0" ...;
+        contrive "builder/v2.0" ...;
+
+        contrive "outout/user/v1.0" =&gt (
+            dep =&gt [ "builder/v1.0", "user::login", "user::password" ],
+            as =&gt sub {
+                $_[0]-&gt;build ({
+                    login =&gt; $_[1],
+                    password =&gt; $_[1],
+                });
+            },
+        );
+        contrive "outout/user/v2.0" =&gt (
+            dep =&gt [ "builder/v2.0", "user::login", "user::password" ],
+            as =&gt sub {
+                $_[0]-&gt;build ({ user =&gt; {
+                    login_name =&gt; $_[1],
+                    password =&gt; $_[1],
+                }});
+            },
+        );</pre>
+    </div>
+
+    <div class="slide">
+      <h1>Books</h1>
+
+      <ul>
+        <li>Domain-Driven Design Destilled by Vaughn Vernon</li>
+        <li>Implementing Domain-Driven Design by Vaughn Vernon</li>
+        <li>Domain-Driven Design - Tackling Complexity in the Heart of Software by Eric Evans</li>
+      </ul>
+    </div>
+
+  </body>
+</html>
